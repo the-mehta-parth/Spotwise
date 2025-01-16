@@ -6,9 +6,8 @@ import { ThemeToggle } from './components/ThemeToggle';
 import type { ParkingSpot, ParkingStats } from './types';
 import { HelpCircle } from 'lucide-react';
 
-// Simulated data
 const mockSpots: ParkingSpot[] = Array.from({ length: 20 }, (_, i) => ({
-  id: `spot-${i + 1}`,
+  id: `Spot ${i + 1}`,
   isOccupied: Math.random() > 0.5,
   location: { x: i % 5, y: Math.floor(i / 5) },
 }));
@@ -27,7 +26,6 @@ function App() {
   };
 
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2000);
