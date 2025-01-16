@@ -1,2 +1,2 @@
-#Spotwise
+# Spotwise
 This system uses YOLO object detection to monitor parking spaces in real-time. Green spots indicate available spaces, while red spots show occupied ones. The dashboard updates automatically as vehicles enter and exit the parking lot.
