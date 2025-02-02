@@ -2,8 +2,19 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse
 from starlette.responses import FileResponse
 from model import yolo_nas_l
+from fastapi.middleware.cors import CORSMiddleware
+import base64
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Add your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/upload")
 async def upload_image(image: UploadFile = File(...)):
@@ -17,11 +28,15 @@ async def upload_image(image: UploadFile = File(...)):
 
         yolo_nas_l(f"input/{image.filename}")
 
-        return FileResponse(f"output/output.png", media_type="image/png")
+        # Read the output file and convert to base64
+        with open("output/output.png", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode()
+
+        return {"image": encoded_string}
 
     except Exception as e:
-        print(f"Error uploading image: {e}") # Important for debugging
-        raise HTTPException(status_code=500, detail=f"Error uploading image: {e}")
+        print(f"Error processing image: {e}")  # Important for debugging
+        raise HTTPException(status_code=500, detail=f"Error processing image: {e}")
 
 
 # Testing Frontend
