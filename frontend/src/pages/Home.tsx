@@ -6,6 +6,7 @@ import { Stats } from "../components/Stats";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { VideoFeed } from "../components/VideoFeed";
 import type { ParkingSpot, ParkingStats } from "../types";
+import { NavigationBar } from "../components/NavigationBar";
 
 const mockSpots: ParkingSpot[] = Array.from({ length: 20 }, (_, i) => ({
   id: `Spot ${i + 1}`,
@@ -36,6 +37,7 @@ function App() {
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
+      <NavigationBar></NavigationBar>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Parking Space Detection</h1>

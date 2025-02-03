@@ -1,8 +1,8 @@
-"use client";
 
 import { AlertCircle, CheckCircle, Moon, Send, Sun, Upload, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { NavigationBar } from "../components/NavigationBar";
 
 const Test: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -134,11 +134,14 @@ const Test: React.FC = () => {
   };
 
   return (
-    <div
+    <div>
+      <NavigationBar></NavigationBar>
+      <div
       className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${
         isDarkMode ? "dark bg-gray-900" : "bg-gray-100"
       }`}
     >
+      
       <div
         className={`w-full max-w-md p-8 rounded-lg shadow-lg transition-all duration-300 ${
           isDarkMode ? "bg-gray-800" : "bg-white"
@@ -316,7 +319,8 @@ const Test: React.FC = () => {
         </div>
       )}
     </div>
-  );
+    </div>
+  )
 };
 
 export default Test;
