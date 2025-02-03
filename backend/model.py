@@ -10,7 +10,7 @@ def yolo_nas_l(image_path):
     model = models.get(
         'yolo_nas_l',
         num_classes=len(CLASSES),
-        checkpoint_path='/Users/parth/PycharmProjects/DesignProject/Spotwise-backend/ckpt_best.pth'
+        checkpoint_path='./ckpt_best.pth'
     )
 
     # Set model to evaluation mode and appropriate device
@@ -22,4 +22,4 @@ def yolo_nas_l(image_path):
     predictions = model.predict(image_path, conf=0.4)
 
     # Display and save results
-    predictions.save(f'output/output.png')
+    predictions.save(f'output/{image_path.split("/")[-1]}')
