@@ -28,15 +28,16 @@ async def upload_image(image: UploadFile = File(...)):
 
         yolo_nas_l(f"input/{image.filename}")
 
-        # Read the output file and convert to base64
-        with open("output/output.png", "rb") as image_file:
+        with open(f"output/{image.filename}", "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read()).decode()
 
         return {"image": encoded_string}
 
+        # return FileResponse(f"output/{image.filename}", media_type="image/png")
+
     except Exception as e:
-        print(f"Error processing image: {e}")  # Important for debugging
-        raise HTTPException(status_code=500, detail=f"Error processing image: {e}")
+        print(f"Error uploading image: {e}") # Important for debugging
+        raise HTTPException(status_code=500, detail=f"Error uploading image: {e}")
 
 
 # Testing Frontend
