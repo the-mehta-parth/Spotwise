@@ -1,6 +1,6 @@
 import torch
 from super_gradients.training import models
-
+import json
 
 # Define class names (must match training)
 CLASSES = ['free_parking_space', 'not_free_parking_space', 'partially_free_parking_space']
@@ -10,16 +10,35 @@ def yolo_nas_l(image_path):
     model = models.get(
         'yolo_nas_l',
         num_classes=len(CLASSES),
-        checkpoint_path='./ckpt_best.pth'
+        checkpoint_path='backend/ckpt_best.pth'
     )
 
-    # Set model to evaluation mode and appropriate device
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = model.to(device)
     model.eval()
-    #
+    
     # Predict on an image
-    predictions = model.predict(image_path, conf=0.4)
+    image_prediction = model.predict(image_path, conf=0.4)
+    #print(image_prediction)
 
-    # Display and save results
-    predictions.save(f'output/{image_path.split("/")[-1]}')
+    # Return JSON results
+    predictions = {}
+    class_names = image_prediction.class_names
+    labels = image_prediction.prediction.labels.tolist()
+    confidence = image_prediction.prediction.confidence.tolist()
+    bboxes = image_prediction.prediction.bboxes_xyxy.tolist()
+
+    for i, (label, conf, bbox) in enumerate(zip(labels, confidence, bboxes)):
+        prediction = {
+            "label_id": label,
+            "label_name": class_names[int(label)],
+            "confidence": conf,
+            "bbox": bbox
+        }
+        predictions[i] = prediction
+
+    return predictions
+
+if __name__ == '__main__':
+    print(yolo_nas_l('backend/1.png'))
+    
