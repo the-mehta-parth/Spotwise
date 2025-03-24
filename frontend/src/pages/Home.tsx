@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { VideoFeed } from '../components/VideoFeed';
 import { Stats } from '../components/Stats';
 import { ParkingLayout } from '../components/ParkingLayout';
 import { ThemeToggle } from '../components/ThemeToggle';
 import type { ParkingSpot, ParkingStats, UserLocation, NavigationInfo } from '../types';
-import { HelpCircle, TestTube2Icon } from 'lucide-react';
+import { HelpCircle, TestTube2Icon, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Simulated data with enhanced spot information
@@ -24,6 +24,8 @@ function App() {
   const [spots, setSpots] = useState<ParkingSpot[]>(mockSpots);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [nearestSpot, setNearestSpot] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [navigationInfo, setNavigationInfo] = useState<NavigationInfo>({
     distance: 150,
     walkingTime: 2,
@@ -38,6 +40,83 @@ function App() {
     occupancyRate: Math.round(
       (spots.filter(spot => spot.isOccupied || spot.isReserved).length / spots.length) * 100
     ),
+  };
+
+  // New function to handle image upload
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    setUploadStatus('uploading');
+    
+    try {
+      const response = await fetch('http://localhost:8000/upload-json', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const data = await response.json();
+      
+      // Handle the specific backend response format
+      // Convert object of objects to array
+      const detectedSpots: ParkingSpot[] = Object.values(data).map((spotData: any) => {
+        // First create an object with all the properties we need
+        const spot: ParkingSpot = {
+          id: `spot-${spotData.label_id}-${Math.random().toString(36).substring(2, 6)}`,
+          spotNumber: `P${spotData.label_id + 1}`,
+          isOccupied: spotData.label_name === 'not_free_parking_space',
+          isReserved: false, // Default to false as backend doesn't provide this
+          type: 'standard', // Default type as backend doesn't provide this
+          location: { 
+            x: Math.round((spotData.bbox[0] + spotData.bbox[2]) / 2), 
+            y: Math.round((spotData.bbox[1] + spotData.bbox[3]) / 2)
+          },
+        };
+        
+        // Return the spot object that conforms to ParkingSpot type
+        return spot;
+      });
+      
+      // If we have less detected spots than our mock data, keep some of the mock spots
+      if (detectedSpots.length < mockSpots.length) {
+        const remainingCount = mockSpots.length - detectedSpots.length;
+        // Ensure these also match the ParkingSpot type
+        const remainingSpots: ParkingSpot[] = mockSpots.slice(0, remainingCount).map(spot => ({
+          ...spot,
+          id: `spot-mock-${Math.random().toString(36).substring(2, 6)}`, // Generate new IDs to avoid conflicts
+        }));
+        
+        setSpots([...detectedSpots, ...remainingSpots]);
+      } else {
+        setSpots(detectedSpots);
+      }
+      
+      setUploadStatus('success');
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setUploadStatus('error');
+    }
+  };
+
+  // Trigger file input click
+  const openFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   useEffect(() => {
@@ -108,6 +187,29 @@ function App() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Spotwise</h1>
           <div className="flex items-center space-x-4">
+            {/* Add image upload button */}
+            <button
+              onClick={openFileUpload}
+              className={`flex items-center p-2 rounded-lg ${uploadStatus === 'uploading' ? 'bg-gray-300' : 'hover:bg-gray-100'} transition-colors`}
+              aria-label="Upload Image"
+              disabled={uploadStatus === 'uploading'}
+            >
+              <Upload className={`w-5 h-5 ${
+                uploadStatus === 'error' ? 'text-red-600' : 
+                uploadStatus === 'success' ? 'text-green-600' : 'text-gray-600'
+              }`} />
+              <span className="ml-2 text-sm">
+                {uploadStatus === 'uploading' ? 'Uploading...' : 'Update Parking Data'}
+              </span>
+            </button>
+            {/* Hidden file input */}
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
             <button
               onClick={() => setShowHelp(!showHelp)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -123,30 +225,24 @@ function App() {
             >
               <TestTube2Icon className="w-5 h-5 text-gray-600" />
             </button>
-
           </div>
         </div>
 
+        {/* Show upload status messages */}
+        {uploadStatus === 'error' && (
+          <div className="bg-red-50 text-red-700 p-3 rounded mb-4">
+            Failed to upload image. Please try again.
+          </div>
+        )}
+        
+        {uploadStatus === 'success' && (
+          <div className="bg-green-50 text-green-700 p-3 rounded mb-4">
+            Parking data successfully updated from image!
+          </div>
+        )}
+
         {showHelp && (
           <div className="bg-blue-50 p-4 rounded-lg mb-8">
-            <h2 className="font-medium mb-2">How to Use the Parking System</h2>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>
-                - The system automatically shows the nearest available parking spot based on your location.
-              </p>
-              <p>
-                - Click on any available (green) spot to make a reservation. You'll receive a confirmation code.
-              </p>
-              <p>
-                <strong>Spot Types:</strong>
-                <span className="ml-2">🚗 Standard</span>
-                <span className="ml-2">♿ Handicap</span>
-                <span className="ml-2">⚡ Electric</span>
-              </p>
-              <p>
-                <strong>Navigation:</strong> Follow the turn-by-turn directions to reach your reserved spot.
-              </p>
-            </div>
           </div>
         )}
 
