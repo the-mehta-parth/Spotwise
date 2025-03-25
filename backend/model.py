@@ -10,7 +10,7 @@ def yolo_nas_l(image_path):
     model = models.get(
         'yolo_nas_l',
         num_classes=len(CLASSES),
-        checkpoint_path='/Users/parth/Projects/PycharmProjects/Spotwise-Local/backend/ckpt_best.pth'
+        checkpoint_path='backend/ckpt_best.pth'
     )
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
