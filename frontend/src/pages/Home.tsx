@@ -7,7 +7,6 @@ import type { ParkingSpot, ParkingStats, UserLocation, NavigationInfo } from '..
 import { HelpCircle, TestTube2Icon, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Simulated data with enhanced spot information
 const mockSpots: ParkingSpot[] = Array.from({ length: 20 }, (_, i) => ({
   id: `spot-${i + 1}`,
   spotNumber: `${String.fromCharCode(65 + Math.floor(i / 5))}${(i % 5) + 1}`,
@@ -25,6 +24,7 @@ function App() {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [nearestSpot, setNearestSpot] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [navigationInfo, setNavigationInfo] = useState<NavigationInfo>({
     distance: 150,
@@ -46,45 +46,46 @@ function App() {
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    
+
     const file = files[0];
     const formData = new FormData();
     formData.append('image', file);
-    
+    const imageUrl = URL.createObjectURL(file);
+    setUploadedImage(imageUrl);
     setUploadStatus('uploading');
-    
+
     try {
       const response = await fetch('http://localhost:8000/upload-json', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to upload image');
       }
-      
+
       const data = await response.json();
-      
+
       // Handle the specific backend response format
       // Convert object of objects to array
-      const detectedSpots: ParkingSpot[] = Object.values(data).map((spotData: any) => {
+      const detectedSpots: ParkingSpot[] = Object.entries(data).map(([index, spotData]: [string, any]) => {
         // First create an object with all the properties we need
         const spot: ParkingSpot = {
           id: `spot-${spotData.label_id}-${Math.random().toString(36).substring(2, 6)}`,
-          spotNumber: `P${spotData.label_id + 1}`,
+          spotNumber: `P${parseInt(index) + 1}`,
           isOccupied: spotData.label_name === 'not_free_parking_space',
-          isReserved: false, // Default to false as backend doesn't provide this
-          type: 'standard', // Default type as backend doesn't provide this
-          location: { 
-            x: Math.round((spotData.bbox[0] + spotData.bbox[2]) / 2), 
+          isReserved: false,
+          type: 'standard',
+          location: {
+            x: Math.round((spotData.bbox[0] + spotData.bbox[2]) / 2),
             y: Math.round((spotData.bbox[1] + spotData.bbox[3]) / 2)
           },
         };
-        
+
         // Return the spot object that conforms to ParkingSpot type
         return spot;
       });
-      
+
       // If we have less detected spots than our mock data, keep some of the mock spots
       if (detectedSpots.length < mockSpots.length) {
         const remainingCount = mockSpots.length - detectedSpots.length;
@@ -93,26 +94,25 @@ function App() {
           ...spot,
           id: `spot-mock-${Math.random().toString(36).substring(2, 6)}`, // Generate new IDs to avoid conflicts
         }));
-        
+
         setSpots([...detectedSpots, ...remainingSpots]);
       } else {
         setSpots(detectedSpots);
       }
-      
+
       setUploadStatus('success');
-      
+
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
     } catch (error) {
       console.error('Error uploading image:', error);
       setUploadStatus('error');
     }
   };
 
-  // Trigger file input click
   const openFileUpload = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -120,12 +120,10 @@ function App() {
   };
 
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2000);
 
-    // Simulate getting user location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -133,8 +131,7 @@ function App() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           });
-          
-          // Find nearest available spot (simplified simulation)
+
           const availableSpots = spots.filter(spot => !spot.isOccupied && !spot.isReserved);
           if (availableSpots.length > 0) {
             setNearestSpot(availableSpots[0].id);
@@ -149,6 +146,14 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (uploadedImage) {
+        URL.revokeObjectURL(uploadedImage);
+      }
+    };
+  }, [uploadedImage]);
+
   const handleReserveSpot = (spotId: string, duration: number, arrivalTime: string) => {
     setSpots(spots.map(spot => {
       if (spot.id === spotId) {
@@ -159,7 +164,7 @@ function App() {
             code: Math.random().toString(36).substring(2, 8).toUpperCase(),
             duration,
             arrivalTime,
-            userId: 'user-1' // In a real app, this would come from authentication
+            userId: 'user-1' 
           }
         };
       }
@@ -187,24 +192,21 @@ function App() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Spotwise</h1>
           <div className="flex items-center space-x-4">
-            {/* Add image upload button */}
             <button
               onClick={openFileUpload}
               className={`flex items-center p-2 rounded-lg ${uploadStatus === 'uploading' ? 'bg-gray-300' : 'hover:bg-gray-100'} transition-colors`}
               aria-label="Upload Image"
               disabled={uploadStatus === 'uploading'}
             >
-              <Upload className={`w-5 h-5 ${
-                uploadStatus === 'error' ? 'text-red-600' : 
-                uploadStatus === 'success' ? 'text-green-600' : 'text-gray-600'
-              }`} />
+              <Upload className={`w-5 h-5 ${uploadStatus === 'error' ? 'text-red-600' :
+                  uploadStatus === 'success' ? 'text-green-600' : 'text-gray-600'
+                }`} />
               <span className="ml-2 text-sm">
                 {uploadStatus === 'uploading' ? 'Uploading...' : 'Update Parking Data'}
               </span>
             </button>
-            {/* Hidden file input */}
-            <input 
-              type="file" 
+            <input
+              type="file"
               ref={fileInputRef}
               onChange={handleImageUpload}
               accept="image/*"
@@ -228,13 +230,12 @@ function App() {
           </div>
         </div>
 
-        {/* Show upload status messages */}
         {uploadStatus === 'error' && (
           <div className="bg-red-50 text-red-700 p-3 rounded mb-4">
             Failed to upload image. Please try again.
           </div>
         )}
-        
+
         {uploadStatus === 'success' && (
           <div className="bg-green-50 text-green-700 p-3 rounded mb-4">
             Parking data successfully updated from image!
@@ -247,9 +248,9 @@ function App() {
         )}
 
         <div className="space-y-8">
-          <VideoFeed isLoading={isLoading} />
+          <VideoFeed isLoading={isLoading} uploadedImage={uploadedImage} />
           <Stats stats={stats} />
-          <ParkingLayout 
+          <ParkingLayout
             spots={spots}
             onReserveSpot={handleReserveSpot}
             onCancelReservation={handleCancelReservation}
