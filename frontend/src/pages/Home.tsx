@@ -185,6 +185,24 @@ function App() {
     }));
   };
 
+  const handleFrameProcessed = (data: any) => {
+    // Convert object of objects to array of ParkingSpot
+    const detectedSpots: ParkingSpot[] = Object.entries(data).map(([index, spotData]: [string, any]) => ({
+      id: `spot-${spotData.label_id}-${Math.random().toString(36).substring(2, 6)}`,
+      spotNumber: `P${parseInt(index) + 1}`,
+      isOccupied: spotData.label_name === 'not_free_parking_space',
+      isReserved: false,
+      type: 'standard',
+      location: {
+        x: Math.round((spotData.bbox[0] + spotData.bbox[2]) / 2),
+        y: Math.round((spotData.bbox[1] + spotData.bbox[3]) / 2)
+      },
+    }));
+
+    // Update spots state
+    setSpots(detectedSpots);
+  };
+
   const navigate = useNavigate();
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
@@ -248,7 +266,11 @@ function App() {
         )}
 
         <div className="space-y-8">
-          <VideoFeed isLoading={isLoading} uploadedImage={uploadedImage} />
+          <VideoFeed 
+            isLoading={isLoading} 
+            uploadedImage={uploadedImage} 
+            onFrameProcessed={handleFrameProcessed}
+          />
           <Stats stats={stats} />
           <ParkingLayout
             spots={spots}

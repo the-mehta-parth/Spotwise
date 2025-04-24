@@ -1,0 +1,3 @@
+super-gradients
+fastapi
+uvicorn

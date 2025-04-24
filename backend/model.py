@@ -10,7 +10,8 @@ def yolo_nas_l(image_path):
     model = models.get(
         'yolo_nas_l',
         num_classes=len(CLASSES),
-        checkpoint_path='/home/traskar/dev/projects/Spotwise/backend/ckpt_best.pth'
+        checkpoint_path='/Users/parth/College/Sem6/DesignProject/Spotwise/backend/ckpt_best.pth'
+        # checkpoint_path='/home/traskar/dev/projects/Spotwise/backend/ckpt_best.pth'
     )
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -40,5 +41,5 @@ def yolo_nas_l(image_path):
     return predictions
 
 if __name__ == '__main__':
-    print(yolo_nas_l('/home/traskar/dev/projects/Spotwise/backend/1.png'))
-    
+    # print(yolo_nas_l('/home/traskar/dev/projects/Spotwise/backend/1.png'))
+    print(yolo_nas_l('/Users/parth/College/Sem6/DesignProject/Spotwise/backend/1.png'))
